@@ -7,6 +7,8 @@ import (
 	"net"
 	"strconv"
 	"video-balancer/config"
+	videogrpc "video-balancer/internal/controller/grpc/video"
+	"video-balancer/internal/service"
 	"video-balancer/pkg/grpcserver"
 	zaplogger "video-balancer/pkg/logger/zap"
 )
@@ -15,6 +17,7 @@ func NewApp() fx.Option {
 	return fx.Options(
 		config.Module,
 		ZapLoggerModule(),
+		service.Module,
 		GRPCServerModule(),
 
 		CheckInitializedModules(),
@@ -41,9 +44,9 @@ func GRPCServerModule() fx.Option {
 			grpcserver.NewServer,
 		),
 		fx.Invoke(
-			//func(srv *grpcserver.Server, services *service.Services) {
-			//	urlgrpc.Register(srv.Srv, services.URL)
-			//},
+			func(srv *grpcserver.Server, services *service.Services) {
+				videogrpc.Register(srv.Srv, services.Video)
+			},
 			func(lc fx.Lifecycle, srv *grpcserver.Server, cfg grpcserver.Config, logger *zap.Logger, shutdowner fx.Shutdowner) {
 				lc.Append(fx.Hook{
 					OnStart: func(ctx context.Context) error {
@@ -71,6 +74,7 @@ func CheckInitializedModules() fx.Option {
 		fx.Invoke(
 			func(cfg *config.Config) {},
 			func(logger *zap.Logger) {},
+			func(service *service.Services) {},
 			func(srv *grpcserver.Server) {},
 		),
 	)
