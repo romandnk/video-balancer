@@ -1,0 +1,11 @@
+grpc_server:
+  max_connection_idle: "5m"
+  max_connection_age: "1h"
+  time: "1m"
+  timeout: "10s"
+
+zap_logger:
+  test: true
+  level: "debug"
+  output_paths: ["stdout"]
+  error_output_paths: ["stderr"]

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package url;
+option go_package = "./;videopb";
+
+service VideoService {
+  rpc RedirectVideo(RedirectVideoRequest) returns (RedirectVideoResponse);
+}
+
+message RedirectVideoRequest {
+  string video = 1;
+}
+
+message RedirectVideoResponse {
+  string videoURL = 1;
+}
