@@ -1,5 +1,7 @@
 package service
 
+//go:generate mockgen -source=service.go -destination=mock/mock.go service
+
 import (
 	"go.uber.org/zap"
 	"net/url"
