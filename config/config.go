@@ -4,13 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ilyakaznacheev/cleanenv"
-	"go.uber.org/fx"
 	"strings"
 	"video-balancer/pkg/grpcserver"
 	zaplogger "video-balancer/pkg/logger/zap"
 )
-
-var Module = fx.Module("config", fx.Provide(NewConfig))
 
 const configPath string = "./config/config.yaml"
 

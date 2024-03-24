@@ -23,7 +23,7 @@ type Server struct {
 	Cfg Config
 }
 
-func NewServer(cfg Config, opts ...grpc.ServerOption) *Server {
+func NewServer(cfg Config, opts []grpc.ServerOption) *Server {
 	serverOptions := []grpc.ServerOption{
 		grpc.Creds(insecure.NewCredentials()),
 		grpc.KeepaliveParams(keepalive.ServerParameters{

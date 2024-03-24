@@ -5,55 +5,65 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"net/url"
+	"path"
 	"strings"
-	"sync/atomic"
 )
 
 const (
-	redirectVideoFunc string = "RedirectVideo"
-	redirectLimitNum  uint32 = 10
+	generateCDNUrlFunc      string = "GenerateCDNUrl"
+	validateOriginalURLFunc string = "ValidateOriginalURL"
 )
 
+const httpScheme string = "http"
+
 var (
-	ErrParsingURL = errors.New("error parsing url")
+	ErrParsingURL       = errors.New("error parsing url")
+	ErrEmptyFirstDomain = errors.New("empty first domain")
+	ErrOriginalURLNil   = errors.New("original url is nil")
 )
 
 type VideoService struct {
-	CDNHost    string
-	requestNum *atomic.Uint32
-	logger     *zap.Logger
+	CDNHost string
+	logger  *zap.Logger
 }
 
 func NewVideoService(CDNHost string, logger *zap.Logger) *VideoService {
-	requestNum := &atomic.Uint32{}
-	requestNum.Add(1) // to improve readability of redirectLimitNum constant
 	return &VideoService{
-		CDNHost:    CDNHost,
-		requestNum: requestNum,
-		logger:     logger,
+		CDNHost: CDNHost,
+		logger:  logger,
 	}
 }
 
-func (s *VideoService) RedirectVideo(rawVideoURL string) (string, error) {
-	log := s.logger.With(zap.String("func", redirectVideoFunc))
+func (s *VideoService) ValidateOriginalURL(rawOriginalURL string) (*url.URL, error) {
+	log := s.logger.With(zap.String("func", validateOriginalURLFunc))
 
-	var redirectURL string
-
-	rawVideoURL = strings.TrimSpace(rawVideoURL)
-	videoURL, err := url.ParseRequestURI(rawVideoURL)
+	rawOriginalURL = strings.TrimSpace(rawOriginalURL)
+	originalURL, err := url.ParseRequestURI(rawOriginalURL)
 	if err != nil {
 		log.Error("url.ParseRequestURI", zap.Error(err))
-		return redirectURL, fmt.Errorf("%w - %w", ErrParsingURL, err)
+		return originalURL, fmt.Errorf("%w - %w", ErrParsingURL, err)
 	}
 
-	if s.requestNum.CompareAndSwap(redirectLimitNum, 0) {
-		// TODO: cdn
-	} else {
-		s.requestNum.Add(1)
-		// TODO: another
+	return originalURL, nil
+}
+
+func (s *VideoService) GenerateCDNUrl(originalURL *url.URL) (string, error) {
+	log := s.logger.With(zap.String("func", generateCDNUrlFunc))
+	if originalURL == nil {
+		return "", ErrOriginalURLNil
+	}
+	log.Info("starting generating cdn url", zap.String("original url", originalURL.String()))
+	var cdnURL url.URL
+	domains := strings.Split(originalURL.Hostname(), ".")
+	firstDomain := domains[0]
+	if firstDomain == "" {
+		log.Error("empty first domain", zap.Error(ErrEmptyFirstDomain))
+		return "", ErrEmptyFirstDomain
 	}
 
-	videoURL.Host = s.CDNHost
-
-	return videoURL.String(), nil
+	cdnURL.Scheme = httpScheme
+	cdnURL.Host = s.CDNHost
+	cdnURL.Path = firstDomain
+	cdnURL.Path = path.Join(cdnURL.Path, originalURL.Path)
+	return cdnURL.String(), nil
 }

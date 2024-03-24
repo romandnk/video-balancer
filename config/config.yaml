@@ -6,6 +6,6 @@ grpc_server:
 
 zap_logger:
   test: true
-  level: "debug"
+  level: "info"
   output_paths: ["stdout"]
   error_output_paths: ["stderr"]

@@ -1,23 +1,14 @@
 package service
 
 import (
-	"go.uber.org/fx"
 	"go.uber.org/zap"
-	"video-balancer/config"
+	"net/url"
 	videoservice "video-balancer/internal/service/video"
 )
 
-var Module = fx.Module("services",
-	fx.Provide(
-		func(cfg *config.Config) string {
-			return cfg.CDNHost
-		},
-		NewServices,
-	),
-)
-
 type Video interface {
-	RedirectVideo(rawVideoURL string) (string, error)
+	ValidateOriginalURL(rawOriginalURL string) (*url.URL, error)
+	GenerateCDNUrl(originalURL *url.URL) (string, error)
 }
 
 type Services struct {

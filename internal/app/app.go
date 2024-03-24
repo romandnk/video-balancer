@@ -4,9 +4,11 @@ import (
 	"context"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 	"net"
 	"strconv"
 	"video-balancer/config"
+	"video-balancer/internal/controller/grpc/interceptors"
 	videogrpc "video-balancer/internal/controller/grpc/video"
 	"video-balancer/internal/service"
 	"video-balancer/pkg/grpcserver"
@@ -15,12 +17,20 @@ import (
 
 func NewApp() fx.Option {
 	return fx.Options(
-		config.Module,
+		ConfigModules(),
 		ZapLoggerModule(),
-		service.Module,
+		ServiceModule(),
 		GRPCServerModule(),
 
 		CheckInitializedModules(),
+	)
+}
+
+func ConfigModules() fx.Option {
+	return fx.Module("config",
+		fx.Provide(
+			config.NewConfig,
+		),
 	)
 }
 
@@ -35,11 +45,27 @@ func ZapLoggerModule() fx.Option {
 	)
 }
 
+func ServiceModule() fx.Option {
+	return fx.Module("services",
+		fx.Provide(
+			func(cfg *config.Config) string {
+				return cfg.CDNHost
+			},
+			service.NewServices,
+		),
+	)
+}
+
 func GRPCServerModule() fx.Option {
 	return fx.Module("grpc server",
 		fx.Provide(
 			func(cfg *config.Config) grpcserver.Config {
 				return cfg.GRPCServer
+			},
+			func(logger *zap.Logger) []grpc.ServerOption {
+				return []grpc.ServerOption{
+					grpc.UnaryInterceptor(interceptors.LoggingInterceptor(logger)),
+				}
 			},
 			grpcserver.NewServer,
 		),
