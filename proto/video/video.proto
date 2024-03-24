@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package url;
+package video;
 option go_package = "./;videopb";
 
 service VideoService {

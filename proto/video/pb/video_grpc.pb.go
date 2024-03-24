@@ -19,7 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	VideoService_RedirectVideo_FullMethodName = "/url.VideoService/RedirectVideo"
+	VideoService_RedirectVideo_FullMethodName = "/video.VideoService/RedirectVideo"
 )
 
 // VideoServiceClient is the client API for VideoService service.
@@ -96,7 +96,7 @@ func _VideoService_RedirectVideo_Handler(srv interface{}, ctx context.Context, d
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var VideoService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "url.VideoService",
+	ServiceName: "video.VideoService",
 	HandlerType: (*VideoServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
