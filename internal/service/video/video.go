@@ -19,7 +19,6 @@ const httpScheme string = "http"
 var (
 	ErrParsingURL       = errors.New("error parsing url")
 	ErrEmptyFirstDomain = errors.New("empty first domain")
-	ErrOriginalURLNil   = errors.New("original url is nil")
 )
 
 type VideoService struct {
@@ -34,24 +33,22 @@ func NewVideoService(CDNHost string, logger *zap.Logger) *VideoService {
 	}
 }
 
-func (s *VideoService) ValidateOriginalURL(rawOriginalURL string) (*url.URL, error) {
+func (s *VideoService) ValidateOriginalURL(rawOriginalURL string) (url.URL, error) {
 	log := s.logger.With(zap.String("func", validateOriginalURLFunc))
 
 	rawOriginalURL = strings.TrimSpace(rawOriginalURL)
 	originalURL, err := url.ParseRequestURI(rawOriginalURL)
 	if err != nil {
 		log.Error("url.ParseRequestURI", zap.Error(err))
-		return originalURL, fmt.Errorf("%w - %w", ErrParsingURL, err)
+		return url.URL{}, fmt.Errorf("%w - %w", ErrParsingURL, err)
 	}
 
-	return originalURL, nil
+	return *originalURL, nil
 }
 
-func (s *VideoService) GenerateCDNUrl(originalURL *url.URL) (string, error) {
+func (s *VideoService) GenerateCDNUrl(originalURL url.URL) (string, error) {
 	log := s.logger.With(zap.String("func", generateCDNUrlFunc))
-	if originalURL == nil {
-		return "", ErrOriginalURLNil
-	}
+
 	log.Info("starting generating cdn url", zap.String("original url", originalURL.String()))
 	var cdnURL url.URL
 	domains := strings.Split(originalURL.Hostname(), ".")
