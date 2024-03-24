@@ -39,18 +39,18 @@ func (m *MockVideo) EXPECT() *MockVideoMockRecorder {
 }
 
 // GenerateCDNUrl mocks base method.
-func (m *MockVideo) GenerateCDNUrl(originalURL url.URL) (string, error) {
+func (m *MockVideo) GenerateCDNUrl(originalURL url.URL, clusterName string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateCDNUrl", originalURL)
+	ret := m.ctrl.Call(m, "GenerateCDNUrl", originalURL, clusterName)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GenerateCDNUrl indicates an expected call of GenerateCDNUrl.
-func (mr *MockVideoMockRecorder) GenerateCDNUrl(originalURL any) *gomock.Call {
+func (mr *MockVideoMockRecorder) GenerateCDNUrl(originalURL, clusterName any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateCDNUrl", reflect.TypeOf((*MockVideo)(nil).GenerateCDNUrl), originalURL)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateCDNUrl", reflect.TypeOf((*MockVideo)(nil).GenerateCDNUrl), originalURL, clusterName)
 }
 
 // ValidateOriginalURL mocks base method.

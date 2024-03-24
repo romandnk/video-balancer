@@ -18,7 +18,7 @@ const httpScheme string = "http"
 
 var (
 	ErrParsingURL       = errors.New("error parsing url")
-	ErrEmptyFirstDomain = errors.New("empty first domain")
+	ErrEmptyClusterName = errors.New("error empty cluster name")
 )
 
 type VideoService struct {
@@ -46,21 +46,19 @@ func (s *VideoService) ValidateOriginalURL(rawOriginalURL string) (url.URL, erro
 	return *originalURL, nil
 }
 
-func (s *VideoService) GenerateCDNUrl(originalURL url.URL) (string, error) {
+func (s *VideoService) GenerateCDNUrl(originalURL url.URL, clusterName string) (string, error) {
 	log := s.logger.With(zap.String("func", generateCDNUrlFunc))
 
 	log.Info("starting generating cdn url", zap.String("original url", originalURL.String()))
 	var cdnURL url.URL
-	domains := strings.Split(originalURL.Hostname(), ".")
-	firstDomain := domains[0]
-	if firstDomain == "" {
-		log.Error("empty first domain", zap.Error(ErrEmptyFirstDomain))
-		return "", ErrEmptyFirstDomain
+	clusterName = strings.TrimSpace(clusterName)
+	if clusterName == "" {
+		return cdnURL.String(), ErrEmptyClusterName
 	}
 
 	cdnURL.Scheme = httpScheme
 	cdnURL.Host = s.CDNHost
-	cdnURL.Path = firstDomain
+	cdnURL.Path = clusterName
 	cdnURL.Path = path.Join(cdnURL.Path, originalURL.Path)
 	return cdnURL.String(), nil
 }

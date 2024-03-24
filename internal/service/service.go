@@ -10,7 +10,7 @@ import (
 
 type Video interface {
 	ValidateOriginalURL(rawOriginalURL string) (url.URL, error)
-	GenerateCDNUrl(originalURL url.URL) (string, error)
+	GenerateCDNUrl(originalURL url.URL, clusterName string) (string, error)
 }
 type Services struct {
 	Video Video

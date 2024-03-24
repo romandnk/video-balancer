@@ -56,3 +56,61 @@ func TestVideoService_ValidateOriginalURL(t *testing.T) {
 		})
 	}
 }
+
+func TestVideoService_GenerateCDNUrl(t *testing.T) {
+	testCases := []struct {
+		name           string
+		originalURL    url.URL
+		clusterName    string
+		expectedCdnUrl string
+		expectedError  error
+	}{
+		{
+			name: "OK",
+			originalURL: url.URL{
+				Scheme: "http",
+				Host:   "s1.origin-cluster",
+				Path:   "/video/123/xcg2djHckad.m3u8",
+			},
+			clusterName:    "s1",
+			expectedCdnUrl: "http://cdn.ru/s1/video/123/xcg2djHckad.m3u8",
+			expectedError:  nil,
+		},
+		{
+			name: "Empty cluster name",
+			originalURL: url.URL{
+				Scheme: "http",
+				Host:   "s1.origin-cluster",
+				Path:   "/video/123/xcg2djHckad.m3u8",
+			},
+			clusterName:   "",
+			expectedError: ErrEmptyClusterName,
+		},
+		{
+			name: "Empty path",
+			originalURL: url.URL{
+				Scheme: "http",
+				Host:   "s1.origin-cluster",
+			},
+			clusterName:    "s1",
+			expectedCdnUrl: "http://cdn.ru/s1",
+		},
+	}
+
+	testCDNHost := "cdn.ru"
+	logger, err := zap.NewProduction()
+	require.NoError(t, err)
+	videoService := NewVideoService(testCDNHost, logger)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actualURL, err := videoService.GenerateCDNUrl(tc.originalURL, tc.clusterName)
+			if tc.expectedError == nil {
+				require.ErrorIs(t, err, tc.expectedError)
+			} else {
+				require.EqualError(t, err, tc.expectedError.Error())
+			}
+			require.Equal(t, tc.expectedCdnUrl, actualURL)
+		})
+	}
+}

@@ -3,6 +3,7 @@ package videogrpc
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc"
@@ -39,6 +40,7 @@ func TestVideoHandler_RedirectVideo(t *testing.T) {
 	type args struct {
 		rawOriginalUrl        string
 		validatedUrl          url.URL
+		clusterName           string
 		cdnUrl                string
 		expectedErrorValidate error
 		expectedErrorCDN      error
@@ -62,11 +64,12 @@ func TestVideoHandler_RedirectVideo(t *testing.T) {
 					Host:   "s1.origin-cluster",
 					Path:   "/video/123/xcg2djHckad.m3u8",
 				},
-				cdnUrl: "http://cdn.ru/s1/video/123/xcg2djHckad.m3u8",
+				clusterName: "s1",
+				cdnUrl:      "http://cdn.ru/s1/video/123/xcg2djHckad.m3u8",
 			},
 			mock: func(m *mockservice.MockVideo, args args) {
 				m.EXPECT().ValidateOriginalURL(args.rawOriginalUrl).Return(args.validatedUrl, args.expectedErrorValidate)
-				m.EXPECT().GenerateCDNUrl(args.validatedUrl).Return(args.cdnUrl, args.expectedErrorCDN)
+				m.EXPECT().GenerateCDNUrl(args.validatedUrl, args.clusterName).Return(args.cdnUrl, args.expectedErrorCDN)
 			},
 			expectedVideo: "http://cdn.ru/s1/video/123/xcg2djHckad.m3u8",
 		},
@@ -142,10 +145,11 @@ func TestVideoHandler_RedirectVideo_DependsOnRequestCount(t *testing.T) {
 
 	client := videopb.NewVideoServiceClient(conn)
 
-	rawOriginalUrl := "http://s1.origin-cluster/video/123/xcg2djHckad.m3u8"
+	clusterName := "s1"
+	rawOriginalUrl := fmt.Sprintf("http://%s.origin-cluster/video/123/xcg2djHckad.m3u8", clusterName)
 	validatedUrl := url.URL{
 		Scheme: "http",
-		Host:   "s1.origin-cluster",
+		Host:   fmt.Sprintf("%s.origin-cluster", clusterName),
 		Path:   "/video/123/xcg2djHckad.m3u8",
 	}
 	expectedCDNUrl := "http://cdn.ru/s1/video/123/xcg2djHckad.m3u8"
@@ -162,7 +166,7 @@ func TestVideoHandler_RedirectVideo_DependsOnRequestCount(t *testing.T) {
 			require.Equal(t, rawOriginalUrl, res.GetVideoURL())
 		} else {
 			videoService.EXPECT().ValidateOriginalURL(rawOriginalUrl).Return(validatedUrl, nil)
-			videoService.EXPECT().GenerateCDNUrl(validatedUrl).Return(expectedCDNUrl, nil)
+			videoService.EXPECT().GenerateCDNUrl(validatedUrl, clusterName).Return(expectedCDNUrl, nil)
 
 			res, err := client.RedirectVideo(ctx, &videopb.RedirectVideoRequest{
 				Video: rawOriginalUrl,

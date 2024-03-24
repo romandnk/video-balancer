@@ -5,8 +5,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"sync/atomic"
+	"strings"
+	"sync"
 	"video-balancer/internal/service"
+	videoservice "video-balancer/internal/service/video"
 	videopb "video-balancer/proto/video/pb"
 )
 
@@ -14,15 +16,16 @@ const redirectLimitNum uint64 = 10
 
 type videoHandler struct {
 	video                            service.Video
-	requestNum                       *atomic.Uint64
+	mu                               sync.Mutex
+	cdnRequestCount                  map[string]uint64
 	videopb.UnsafeVideoServiceServer // make sure we didn't forget to implement its methods
 }
 
 func Register(gRPCSServer *grpc.Server, video service.Video) {
-	requestNum := &atomic.Uint64{}
 	videopb.RegisterVideoServiceServer(gRPCSServer, &videoHandler{
-		video:      video,
-		requestNum: requestNum,
+		video:           video,
+		mu:              sync.Mutex{},
+		cdnRequestCount: make(map[string]uint64),
 	})
 }
 
@@ -34,11 +37,25 @@ func (h *videoHandler) RedirectVideo(ctx context.Context, req *videopb.RedirectV
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	requestNum := h.requestNum.Add(1)
-	if requestNum%redirectLimitNum == 0 {
+	domains := strings.Split(originalURL.Hostname(), ".")
+	clusterName := domains[0]
+	if clusterName == "" {
+		return nil, status.Error(codes.InvalidArgument, videoservice.ErrEmptyClusterName.Error())
+	}
+
+	h.mu.Lock()
+	requestNum, ok := h.cdnRequestCount[clusterName]
+	if !ok {
+		h.cdnRequestCount[clusterName] = 1
+	} else {
+		h.cdnRequestCount[clusterName]++
+	}
+	h.mu.Unlock()
+
+	if (requestNum+1)%redirectLimitNum == 0 {
 		response.VideoURL = rawOriginalURL
 	} else {
-		cdnURL, err := h.video.GenerateCDNUrl(originalURL)
+		cdnURL, err := h.video.GenerateCDNUrl(originalURL, clusterName)
 		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, err.Error())
 		}
